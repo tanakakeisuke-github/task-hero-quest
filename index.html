@@ -1,546 +1,219 @@
 <!DOCTYPE html>
 <html lang="ja">
-  <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>タスク勇者 〜クエストの書〜</title>
-  <style>
-    *{margin:0;padding:0;box-sizing:border-box}
-    @import url('https://fonts.googleapis.com/css2?family=DotGothic16&display=swap');
-    :root{
-      --bg-dark:#1a1a2e;--bg-mid:#16213e;--bg-light:#0f3460;
-      --accent:#e94560;--gold:#ffd700;--green:#00d474;--blue:#4fc3f7;
-      --text:#e0e0e0;--text-dim:#888;
-    }
-    body{font-family:'DotGothic16','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg-dark);color:var(--text);min-height:100vh;overflow-x:hidden}
-    .app{max-width:480px;margin:0 auto;padding:12px;position:relative}
-
-    /* Header */
-    .header{text-align:center;padding:16px 0 8px;position:relative}
-    .header h1{font-size:1.4em;color:var(--gold);text-shadow:0 0 20px rgba(255,215,0,.3)}
-    .header .subtitle{font-size:.75em;color:var(--text-dim);margin-top:2px}
-    .stats-bar{display:flex;justify-content:space-between;align-items:center;background:var(--bg-mid);border:1px solid #333;border-radius:10px;padding:8px 14px;margin:10px 0}
-    .stat{text-align:center;flex:1}
-    .stat .label{font-size:.6em;color:var(--text-dim);display:block}
-    .stat .value{font-size:1em;font-weight:bold;color:var(--gold)}
-    .stat .value.lv{color:var(--accent)}
-    .stat .value.streak{color:var(--green)}
-    .xp-bar-wrap{background:#333;border-radius:6px;height:8px;margin:6px 0;overflow:hidden;position:relative}
-    .xp-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:6px;transition:width .5s ease}
-    .xp-info{display:flex;justify-content:space-between;font-size:.6em;color:var(--text-dim)}
-
-    /* Tabs */
-    .tabs{display:flex;gap:4px;margin:10px 0}
-    .tab{flex:1;padding:8px;text-align:center;background:var(--bg-mid);border:1px solid #333;border-radius:8px 8px 0 0;cursor:pointer;font-size:.75em;color:var(--text-dim);transition:all .2s;font-family:inherit}
-    .tab.active{background:var(--bg-light);color:var(--gold);border-bottom-color:var(--bg-light)}
-    .tab:hover{color:var(--text)}
-
-    /* Panel */
-    .panel{display:none;background:var(--bg-light);border:1px solid #333;border-top:0;border-radius:0 0 10px 10px;padding:12px;min-height:300px}
-    .panel.active{display:block}
-
-    /* Quest Add */
-    .quest-add{display:flex;gap:6px;margin-bottom:10px}
-    .quest-add input{flex:1;background:var(--bg-dark);border:1px solid #555;border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:.85em}
-    .quest-add input::placeholder{color:#666}
-    .quest-add input:focus{outline:none;border-color:var(--gold)}
-    .quest-options{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
-    .diff-btn,.cat-btn{padding:5px 10px;border-radius:15px;border:1px solid #555;background:var(--bg-dark);color:var(--text-dim);cursor:pointer;font-size:.7em;font-family:inherit;transition:all .2s}
-    .diff-btn.active,.cat-btn.active{border-color:var(--gold);color:var(--gold)}
-    .diff-btn:hover,.cat-btn:hover{border-color:var(--text)}
-    .add-btn{background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85em;transition:background .2s}
-    .add-btn:hover{background:#ff5a75}
-
-    /* Quest List */
-    .quest-list{list-style:none}
-    .quest-item{display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg-dark);border:1px solid #333;border-radius:8px;margin-bottom:6px;transition:all .3s;animation:slideIn .3s ease}
-    .quest-item:hover{border-color:#555}
-    .quest-item.done{opacity:.5;text-decoration:line-through}
-    .quest-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--accent);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
-    .quest-check:hover{background:rgba(233,69,96,.2)}
-    .quest-item.done .quest-check{background:var(--green);border-color:var(--green);color:#fff}
-    .quest-info{flex:1;min-width:0}
-    .quest-name{font-size:.85em;word-break:break-word}
-    .quest-meta{font-size:.6em;color:var(--text-dim);margin-top:2px}
-    .quest-reward{font-size:.7em;color:var(--gold);white-space:nowrap}
-    .quest-delete{background:none;border:none;color:#555;cursor:pointer;font-size:1em;padding:4px;transition:color .2s}
-    .quest-delete:hover{color:var(--accent)}
-    .empty-msg{text-align:center;color:var(--text-dim);font-size:.8em;padding:40px 0}
-
-    /* Town */
-    .town-view{position:relative;height:220px;background:linear-gradient(180deg,#0a0a23 0%,#1a1a4e 40%,#2d5016 70%,#1a3a0a 100%);border-radius:10px;overflow:hidden;margin-bottom:10px}
-    .stars{position:absolute;top:0;left:0;right:0;height:40%}
-    .star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 2s infinite}
-    @keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
-    .ground{position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(180deg,#2d5016,#1a3a0a)}
-    .building{position:absolute;bottom:30%;text-align:center;cursor:pointer;transition:transform .2s}
-    .building:hover{transform:scale(1.1)}
-    .building .icon{font-size:2em}
-    .building .name{font-size:.5em;color:var(--text-dim);white-space:nowrap}
-    .town-gold{position:absolute;top:8px;right:10px;font-size:.8em;color:var(--gold)}
-    .town-level{position:absolute;top:8px;left:10px;font-size:.7em;color:var(--blue)}
-    .shop-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-    .shop-item{background:var(--bg-dark);border:1px solid #333;border-radius:8px;padding:10px;text-align:center;cursor:pointer;transition:all .2s}
-    .shop-item:hover{border-color:var(--gold)}
-    .shop-item.owned{opacity:.4;cursor:default}
-    .shop-item .s-icon{font-size:1.8em}
-    .shop-item .s-name{font-size:.7em;margin:4px 0}
-    .shop-item .s-cost{font-size:.65em;color:var(--gold)}
-    .shop-item .s-desc{font-size:.55em;color:var(--text-dim)}
-
-    /* Character */
-    .char-card{text-align:center;padding:20px}
-    .char-avatar{font-size:4em;margin-bottom:8px}
-    .char-title{font-size:.7em;color:var(--accent);margin-bottom:4px}
-    .char-name{font-size:1.2em;color:var(--gold);margin-bottom:12px}
-    .char-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
-    .cs{background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center}
-    .cs .cs-label{font-size:.6em;color:var(--text-dim)}
-    .cs .cs-val{font-size:1.1em;font-weight:bold;color:var(--blue)}
-
-    /* Achievements */
-    .achieve-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
-    .achieve{background:var(--bg-dark);border:1px solid #333;border-radius:8px;padding:10px;text-align:center;transition:all .2s}
-    .achieve.unlocked{border-color:var(--gold);background:rgba(255,215,0,.05)}
-    .achieve .a-icon{font-size:1.5em;filter:grayscale(1);transition:filter .3s}
-    .achieve.unlocked .a-icon{filter:grayscale(0)}
-    .achieve .a-name{font-size:.65em;margin-top:4px}
-    .achieve .a-desc{font-size:.55em;color:var(--text-dim);margin-top:2px}
-
-    /* Toast */
-    .toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--bg-mid);border:1px solid var(--gold);border-radius:10px;padding:10px 20px;color:var(--gold);font-family:inherit;font-size:.85em;z-index:999;animation:toastIn .3s ease;box-shadow:0 4px 20px rgba(255,215,0,.2)}
-    @keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
-    @keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
-
-    /* Floating particles */
-    .particle{position:fixed;pointer-events:none;font-size:1.2em;animation:floatUp 1s ease forwards;z-index:998}
-    @keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.5)}}
-
-    /* Filter tabs */
-    .filter-tabs{display:flex;gap:4px;margin-bottom:8px}
-    .filter-tab{padding:3px 8px;border-radius:10px;border:1px solid #444;background:transparent;color:var(--text-dim);cursor:pointer;font-size:.6em;font-family:inherit;transition:all .2s}
-    .filter-tab.active{border-color:var(--gold);color:var(--gold)}
-
-    /* Responsive */
-    @media(max-width:400px){
-      .app{padding:8px}
-      .header h1{font-size:1.1em}
-      .shop-list,.achieve-list{grid-template-columns:1fr}
-    }
-    </style>
-  </head>
-  <body>
-    <div class="app">
-        <div class="header">
-              <h1>⚔️ タスク勇者 〜クエストの書〜</h1>
-            <div class="subtitle">Todoをこなして世界を救え！</div>div>
-        </div>div>
-    
-      <div class="stats-bar">
-          <div class="stat"><span class="label">レベル</span>span><span class="value lv" id="level">1</span>span></div>div>
-          <div class="stat"><span class="label">ゴールド</span>span><span class="value" id="gold">0</span>span></div>div>
-          <div class="stat"><span class="label">連続日数</span>span><span class="value streak" id="streak">0</span>span></div>div>
-          <div class="stat"><span class="label">完了数</span>span><span class="value" id="totalDone">0</span>span></div>div>
-      </div>div>
-      <div class="xp-bar-wrap"><div class="xp-bar" id="xpBar" style="width:0%"></div>div></div>div>
-      <div class="xp-info"><span id="xpText">0 / 100 XP</span>span><span id="titleText">見習い冒険者</span>span></div>div>
-    
-      <div class="tabs">
-          <button class="tab active" data-tab="quests">📜 クエスト</button>button>
-          <button class="tab" data-tab="town">🏰 街</button>button>
-          <button class="tab" data-tab="character">👤 勇者</button>button>
-          <button class="tab" data-tab="achievements">🏆 実績</button>button>
-      </div>div>
-    
-      <!-- Quests Panel -->
-      <div class="panel active" id="panel-quests">
-          <div class="quest-add">
-                <input type="text" id="questInput" placeholder="新しいクエストを入力..." maxlength="100">
-                <button class="add-btn" id="addBtn">追加</button>button>
-          </div>div>
-          <div class="quest-options">
-                <button class="diff-btn active" data-diff="easy">★ 簡単</button>button>
-                <button class="diff-btn" data-diff="normal">★★ 普通</button>button>
-                <button class="diff-btn" data-diff="hard">★★★ 難しい</button>button>
-          </div>div>
-          <div class="quest-options">
-                <button class="cat-btn active" data-cat="work">💼 仕事</button>button>
-                <button class="cat-btn" data-cat="study">📚 勉強</button>button>
-                <button class="cat-btn" data-cat="home">🏠 家事</button>button>
-                <button class="cat-btn" data-cat="health">💪 健康</button>button>
-                <button class="cat-btn" data-cat="other">🌟 その他</button>button>
-          </div>div>
-          <div class="filter-tabs">
-                <button class="filter-tab active" data-filter="active">未完了</button>button>
-                <button class="filter-tab" data-filter="done">完了済</button>button>
-                <button class="filter-tab" data-filter="all">すべて</button>button>
-          </div>div>
-          <ul class="quest-list" id="questList"></ul>ul>
-      </div>div>
-    
-      <!-- Town Panel -->
-      <div class="panel" id="panel-town">
-          <div class="town-view" id="townView">
-                <div class="stars" id="stars"></div>div>
-                <div class="ground"></div>div>
-                <div class="town-level" id="townLevel">🏰 街Lv.1</div>div>
-                <div class="town-gold">💰 <span id="townGold">0</span>span>G</div>div>
-          </div>div>
-          <h3 style="font-size:.8em;color:var(--gold);margin-bottom:8px">🛒 建物ショップ</h3>
-          <div class="shop-list" id="shopList"></div>div>
-      </div>div>
-    
-      <!-- Character Panel -->
-      <div class="panel" id="panel-character">
-          <div class="char-card">
-                <div class="char-avatar" id="charAvatar">🧙</div>div>
-                <div class="char-title" id="charTitle">見習い冒険者</div>div>
-                <div class="char-name" id="charName">勇者</div>div>
-                <div class="char-stats">
-                        <div class="cs"><div class="cs-label">総クエスト完了</div>div><div class="cs-val" id="csDone">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">獲得総XP</div>div><div class="cs-val" id="csXp">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">獲得総ゴールド</div>div><div class="cs-val" id="csGold">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">最長連続日数</div>div><div class="cs-val" id="csStreak">0</div>div></div>div>
-                </div>div>
-                <div class="char-stats">
-                        <div class="cs"><div class="cs-label">💼 仕事</div>div><div class="cs-val" id="csWork">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">📚 勉強</div>div><div class="cs-val" id="csStudy">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">🏠 家事</div>div><div class="cs-val" id="csHome">0</div>div></div>div>
-                        <div class="cs"><div class="cs-label">💪 健康</div>div><div class="cs-val" id="csHealth">0</div>div></div>div>
-                </div>div>
-          </div>div>
-      </div>div>
-    
-      <!-- Achievements Panel -->
-      <div class="panel" id="panel-achievements">
-          <div class="achieve-list" id="achieveList"></div>div>
-      </div>div>
-    </div>div>
-  
-  <script>
-    // ========== GAME STATE ==========
-    const DEFAULT_STATE = {
-        level:1, xp:0, gold:0, totalGold:0, totalXp:0,
-        totalDone:0, streak:0, maxStreak:0, lastDoneDate:null,
-        quests:[], buildings:[], achievements:[],
-        catStats:{work:0,study:0,home:0,health:0,other:0}
-    };
-
-    let state = loadState();
-
-    function loadState(){
-        try{const s=localStorage.getItem('taskHeroState');return s?{...DEFAULT_STATE,...JSON.parse(s)}:JSON.parse(JSON.stringify(DEFAULT_STATE))}
-        catch(e){return JSON.parse(JSON.stringify(DEFAULT_STATE))}
-    }
-    function saveState(){localStorage.setItem('taskHeroState',JSON.stringify(state))}
-
-    // ========== CONFIG ==========
-    const DIFF_CONFIG = {
-        easy:{xp:15,gold:5,label:'★ 簡単'},
-        normal:{xp:30,gold:12,label:'★★ 普通'},
-        hard:{xp:60,gold:25,label:'★★★ 難しい'}
-    };
-    const CAT_CONFIG = {
-        work:{icon:'💼',label:'仕事'},study:{icon:'📚',label:'勉強'},
-        home:{icon:'🏠',label:'家事'},health:{icon:'💪',label:'健康'},other:{icon:'🌟',label:'その他'}
-    };
-    const TITLES = [
-      {lv:1,title:'見習い冒険者',avatar:'🧑‍🌾'},{lv:3,title:'駆け出し戦士',avatar:'⚔️'},
-      {lv:5,title:'熟練の勇者',avatar:'🛡️'},{lv:8,title:'ベテラン騎士',avatar:'🏇'},
-      {lv:12,title:'エリート聖騎士',avatar:'⚜️'},{lv:16,title:'竜殺しの英雄',avatar:'🐉'},
-      {lv:20,title:'伝説の大勇者',avatar:'👑'},{lv:30,title:'神話の王',avatar:'🌟'}
-      ];
-    const BUILDINGS = [
-      {id:'house',name:'民家',icon:'🏠',cost:20,desc:'村人が住む家'},
-      {id:'inn',name:'宿屋',icon:'🏨',cost:40,desc:'旅人を癒す場所'},
-      {id:'shop',name:'雑貨店',icon:'🏪',cost:60,desc:'便利な道具を売る'},
-      {id:'blacksmith',name:'鍛冶屋',icon:'⚒️',cost:100,desc:'武器を鍛える'},
-      {id:'church',name:'教会',icon:'⛪',cost:120,desc:'祈りの場所'},
-      {id:'library',name:'図書館',icon:'📚',cost:150,desc:'知恵の宝庫'},
-      {id:'tower',name:'魔法の塔',icon:'🗼',cost:200,desc:'魔力が満ちる'},
-      {id:'castle',name:'城',icon:'🏰',cost:350,desc:'街のシンボル'},
-      {id:'colosseum',name:'闘技場',icon:'🏟️',cost:500,desc:'勇者の腕試し'},
-      {id:'palace',name:'王宮',icon:'👑',cost:800,desc:'繁栄の証'}
-      ];
-    const ACHIEVEMENTS = [
-      {id:'first_quest',name:'はじめの一歩',desc:'最初のクエストを完了',icon:'🌱',check:s=>s.totalDone>=1},
-      {id:'quest_10',name:'冒険者の証',desc:'10個のクエストを完了',icon:'📜',check:s=>s.totalDone>=10},
-      {id:'quest_50',name:'歴戦の猛者',desc:'50個のクエストを完了',icon:'🗡️',check:s=>s.totalDone>=50},
-      {id:'quest_100',name:'伝説のクエスター',desc:'100個のクエストを完了',icon:'🏆',check:s=>s.totalDone>=100},
-      {id:'streak_3',name:'三日坊主卒業',desc:'3日連続達成',icon:'🔥',check:s=>s.maxStreak>=3},
-      {id:'streak_7',name:'一週間の覇者',desc:'7日連続達成',icon:'⭐',check:s=>s.maxStreak>=7},
-      {id:'streak_30',name:'鉄の意志',desc:'30日連続達成',icon:'💎',check:s=>s.maxStreak>=30},
-      {id:'lv5',name:'成長の証',desc:'レベル5に到達',icon:'📈',check:s=>s.level>=5},
-      {id:'lv10',name:'一人前の勇者',desc:'レベル10に到達',icon:'🎖️',check:s=>s.level>=10},
-      {id:'lv20',name:'大勇者の覚醒',desc:'レベル20に到達',icon:'👑',check:s=>s.level>=20},
-      {id:'gold_100',name:'小金持ち',desc:'累計100G獲得',icon:'💰',check:s=>s.totalGold>=100},
-      {id:'gold_1000',name:'大富豪',desc:'累計1000G獲得',icon:'💎',check:s=>s.totalGold>=1000},
-      {id:'building_1',name:'開拓者',desc:'最初の建物を建設',icon:'🏗️',check:s=>s.buildings.length>=1},
-      {id:'building_5',name:'街づくりの名人',desc:'5つの建物を建設',icon:'🌆',check:s=>s.buildings.length>=5},
-      {id:'building_all',name:'完全なる都市',desc:'全建物を建設',icon:'🌇',check:s=>s.buildings.length>=BUILDINGS.length}
-      ];
-
-    // ========== XP SYSTEM ==========
-    function xpForLevel(lv){return Math.floor(80*(lv**1.4))}
-    function getTitle(lv){let t=TITLES[0];TITLES.forEach(ti=>{if(lv>=ti.lv)t=ti});return t}
-
-    // ========== STREAK ==========
-    function updateStreak(){
-        const today=new Date().toDateString();
-        if(state.lastDoneDate===today)return;
-        const yesterday=new Date(Date.now()-86400000).toDateString();
-        if(state.lastDoneDate===yesterday){state.streak++}
-        else if(state.lastDoneDate!==today){state.streak=1}
-        state.lastDoneDate=today;
-        if(state.streak>state.maxStreak)state.maxStreak=state.streak;
-    }
-
-    // ========== DOM REFS ==========
-    const $=id=>document.getElementById(id);
-    const questInput=$('questInput'), questList=$('questList');
-
-    // ========== TABS ==========
-    document.querySelectorAll('.tab').forEach(tab=>{
-        tab.addEventListener('click',()=>{
-              document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-              document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-              tab.classList.add('active');
-              document.getElementById('panel-'+tab.dataset.tab).classList.add('active');
-              if(tab.dataset.tab==='town')renderTown();
-              if(tab.dataset.tab==='character')renderCharacter();
-              if(tab.dataset.tab==='achievements')renderAchievements();
-        });
-    });
-
-    // ========== DIFFICULTY & CATEGORY ==========
-    let selDiff='easy', selCat='work', selFilter='active';
-
-    document.querySelectorAll('.diff-btn').forEach(b=>{
-        b.addEventListener('click',()=>{
-              document.querySelectorAll('.diff-btn').forEach(x=>x.classList.remove('active'));
-              b.classList.add('active'); selDiff=b.dataset.diff;
-        });
-    });
-    document.querySelectorAll('.cat-btn').forEach(b=>{
-        b.addEventListener('click',()=>{
-              document.querySelectorAll('.cat-btn').forEach(x=>x.classList.remove('active'));
-              b.classList.add('active'); selCat=b.dataset.cat;
-        });
-    });
-    document.querySelectorAll('.filter-tab').forEach(b=>{
-        b.addEventListener('click',()=>{
-              document.querySelectorAll('.filter-tab').forEach(x=>x.classList.remove('active'));
-              b.classList.add('active'); selFilter=b.dataset.filter; renderQuests();
-        });
-    });
-
-    // ========== ADD QUEST ==========
-    $('addBtn').addEventListener('click',addQuest);
-    questInput.addEventListener('keydown',e=>{if(e.key==='Enter')addQuest()});
-
-    function addQuest(){
-        const name=questInput.value.trim();
-        if(!name)return;
-        state.quests.unshift({id:Date.now(),name,diff:selDiff,cat:selCat,done:false,createdAt:Date.now()});
-        questInput.value='';
-        saveState(); renderQuests();
-        showToast('📜 新クエスト登録！');
-    }
-
-    // ========== COMPLETE QUEST ==========
-    function completeQuest(id){
-        const q=state.quests.find(x=>x.id===id);
-        if(!q||q.done)return;
-        q.done=true; q.doneAt=Date.now();
-        const cfg=DIFF_CONFIG[q.diff];
-        const streakBonus=Math.min(state.streak,10)*.1;
-        const xpGain=Math.floor(cfg.xp*(1+streakBonus));
-        const goldGain=Math.floor(cfg.gold*(1+streakBonus));
-        // Random drop bonus
-        const lucky=Math.random()<.15;
-        const bonusGold=lucky?Math.floor(goldGain*.5):0;
-
-        state.xp+=xpGain;
-        state.gold+=goldGain+bonusGold;
-        state.totalGold+=goldGain+bonusGold;
-        state.totalXp+=xpGain;
-        state.totalDone++;
-        state.catStats[q.cat]=(state.catStats[q.cat]||0)+1;
-        updateStreak();
-
-        // Level up check
-        let leveledUp=false;
-        while(state.xp>=xpForLevel(state.level)){
-              state.xp-=xpForLevel(state.level);
-              state.level++;
-              leveledUp=true;
-        }
-
-        saveState(); checkAchievements();
-        renderQuests(); renderStats();
-
-        // Effects
-        spawnParticles('+'+xpGain+'XP','var(--blue)');
-        setTimeout(()=>spawnParticles('+'+goldGain+'G','var(--gold)'),300);
-        if(lucky){setTimeout(()=>{showToast('🎁 レアドロップ！ ボーナス +'+bonusGold+'G');spawnParticles('💎RARE!','var(--accent)')},600)}
-        if(leveledUp){setTimeout(()=>{const t=getTitle(state.level);showToast('⬆️ レベルアップ！ Lv.'+state.level+' 『'+t.title+'』')},lucky?1200:600)}
-    }
-
-    function deleteQuest(id){
-        state.quests=state.quests.filter(q=>q.id!==id);
-        saveState(); renderQuests();
-    }
-
-    // ========== RENDER ==========
-    function renderQuests(){
-        let list=state.quests;
-        if(selFilter==='active')list=list.filter(q=>!q.done);
-        else if(selFilter==='done')list=list.filter(q=>q.done);
-
-        if(list.length===0){
-              questList.innerHTML='<div class="empty-msg">'+(selFilter==='done'?'完了したクエストはまだありません':'🗡️ クエストがありません。冒険を始めよう！')+'</div>';
-              return;
-        }
-        questList.innerHTML=list.map(q=>{
-              const cfg=DIFF_CONFIG[q.diff];const cat=CAT_CONFIG[q.cat];
-              return `<li class="quest-item${q.done?' done':''}">
-                    <button class="quest-check" onclick="completeQuest(${q.id})">${q.done?'✓':''}</button>
-                          <div class="quest-info">
-                                  <div class="quest-name">${escHtml(q.name)}</div>
-                                          <div class="quest-meta">${cat.icon} ${cat.label} ・ ${cfg.label}</div>
-                                                </div>
-                                                      <span class="quest-reward">${q.done?'✅':'🪙'+cfg.gold+'G'}</span>
-                                                            <button class="quest-delete" onclick="deleteQuest(${q.id})">✕</button>
-                                                                </li>`;
-        }).join('');
-    }
-
-    function renderStats(){
-        $('level').textContent=state.level;
-        $('gold').textContent=state.gold;
-        $('streak').textContent=state.streak;
-        $('totalDone').textContent=state.totalDone;
-        const needed=xpForLevel(state.level);
-        const pct=Math.min(100,Math.floor(state.xp/needed*100));
-        $('xpBar').style.width=pct+'%';
-        $('xpText').textContent=state.xp+' / '+needed+' XP';
-        const t=getTitle(state.level);
-        $('titleText').textContent=t.title;
-    }
-
-    function renderTown(){
-        $('townGold').textContent=state.gold;
-        $('townLevel').textContent='🏰 街Lv.'+Math.min(state.buildings.length+1,BUILDINGS.length);
-        // Stars
-        const starsEl=$('stars');
-        if(!starsEl.children.length){
-              for(let i=0;i<30;i++){
-                      const s=document.createElement('div');s.className='star';
-                      s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';
-                      s.style.animationDelay=Math.random()*2+'s';
-                      starsEl.appendChild(s);
-              }
-        }
-        // Buildings in town view
-        const tv=$('townView');
-        tv.querySelectorAll('.building').forEach(b=>b.remove());
-        state.buildings.forEach((bid,i)=>{
-              const bd=BUILDINGS.find(x=>x.id===bid);
-              if(!bd)return;
-              const el=document.createElement('div');el.className='building';
-              const positions=[
-                {left:'10%'},{left:'25%'},{left:'40%'},{left:'55%'},{left:'70%'},{left:'85%'},
-                {left:'17%'},{left:'47%'},{left:'63%'},{left:'33%'}
-                    ];
-              const pos=positions[i%positions.length];
-              el.style.left=pos.left;
-              if(i>=6)el.style.bottom='42%';
-              el.innerHTML='<div class="icon">'+bd.icon+'</div><div class="name">'+bd.name+'</div>';
-              tv.appendChild(el);
-        });
-        // Shop
-        const shopList=$('shopList');
-        shopList.innerHTML=BUILDINGS.map(b=>{
-              const owned=state.buildings.includes(b.id);
-              return `<div class="shop-item${owned?' owned':''}" onclick="${owned?'':'buyBuilding(\''+b.id+'\')'}">
-                    <div class="s-icon">${b.icon}</div>
-                          <div class="s-name">${b.name}</div>
-                                <div class="s-cost">${owned?'✅ 建設済':'💰 '+b.cost+'G'}</div>
-                                      <div class="s-desc">${b.desc}</div>
-                                          </div>`;
-        }).join('');
-    }
-
-    function buyBuilding(id){
-        const b=BUILDINGS.find(x=>x.id===id);
-        if(!b||state.buildings.includes(id))return;
-        if(state.gold<b.cost){showToast('❌ ゴールドが足りません！');return}
-        state.gold-=b.cost;
-        state.buildings.push(id);
-        saveState(); checkAchievements(); renderTown(); renderStats();
-        showToast('🏗️ '+b.name+'を建設しました！');
-        spawnParticles('🏗️','var(--green)');
-    }
-
-    function renderCharacter(){
-        const t=getTitle(state.level);
-        $('charAvatar').textContent=t.avatar;
-        $('charTitle').textContent=t.title;
-        $('csDone').textContent=state.totalDone;
-        $('csXp').textContent=state.totalXp;
-        $('csGold').textContent=state.totalGold;
-        $('csStreak').textContent=state.maxStreak;
-        $('csWork').textContent=state.catStats.work||0;
-        $('csStudy').textContent=state.catStats.study||0;
-        $('csHome').textContent=state.catStats.home||0;
-        $('csHealth').textContent=state.catStats.health||0;
-    }
-
-    function renderAchievements(){
-        const list=$('achieveList');
-        list.innerHTML=ACHIEVEMENTS.map(a=>{
-              const unlocked=state.achievements.includes(a.id);
-              return `<div class="achieve${unlocked?' unlocked':''}">
-                    <div class="a-icon">${a.icon}</div>
-                          <div class="a-name">${a.name}</div>
-                                <div class="a-desc">${a.desc}</div>
-                                    </div>`;
-        }).join('');
-    }
-
-    function checkAchievements(){
-        let newOnes=false;
-        ACHIEVEMENTS.forEach(a=>{
-              if(!state.achievements.includes(a.id)&&a.check(state)){
-                      state.achievements.push(a.id);
-                      newOnes=true;
-                      setTimeout(()=>{showToast('🏆 実績解除！『'+a.name+'』');spawnParticles('🏆','var(--gold)')},800);
-              }
-        });
-        if(newOnes)saveState();
-    }
-
-    // ========== EFFECTS ==========
-    function showToast(msg){
-        const t=document.createElement('div');t.className='toast';t.textContent=msg;
-        document.body.appendChild(t);
-        setTimeout(()=>t.remove(),2500);
-    }
-    function spawnParticles(text,color){
-        const p=document.createElement('div');p.className='particle';
-        p.textContent=text;p.style.color=color;
-        p.style.left=Math.random()*60+20+'%';p.style.top='40%';
-        document.body.appendChild(p);
-        setTimeout(()=>p.remove(),1000);
-    }
-    function escHtml(s){const d=document.createElement('div');d.textContent=s;return d.innerHTML}
-
-    // ========== INIT ==========
-    renderQuests(); renderStats();
-  </script>
-  </body>
-</html>html>
-  </script></h1>
-  </body>
-  </style></title>
-  </head>
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>タスク勇者 〜クエストの書〜</title>
+<link href="https://fonts.googleapis.com/css2?family=DotGothic16&display=swap" rel="stylesheet">
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+:root{
+--bg-dark:#1a1a2e;--bg-mid:#16213e;--bg-light:#0f3460;
+--accent:#e94560;--gold:#ffd700;--green:#00d474;--blue:#4fc3f7;
+--text:#e0e0e0;--text-dim:#888;
+}
+body{font-family:'DotGothic16','Hiragino Kaku Gothic ProN',sans-serif;background:var(--bg-dark);color:var(--text);min-height:100vh;overflow-x:hidden}
+.app{max-width:480px;margin:0 auto;padding:12px;position:relative}
+.header{text-align:center;padding:16px 0 8px;position:relative}
+.header h1{font-size:1.4em;color:var(--gold);text-shadow:0 0 20px rgba(255,215,0,.3)}
+.header .subtitle{font-size:.75em;color:var(--text-dim);margin-top:2px}
+.stats-bar{display:flex;justify-content:space-between;align-items:center;background:var(--bg-mid);border:1px solid #333;border-radius:10px;padding:8px 14px;margin:10px 0}
+.stat{text-align:center;flex:1}
+.stat .label{font-size:.6em;color:var(--text-dim);display:block}
+.stat .value{font-size:1em;font-weight:bold;color:var(--gold)}
+.stat .value.lv{color:var(--accent)}
+.stat .value.streak{color:var(--green)}
+.xp-bar-wrap{background:#333;border-radius:6px;height:8px;margin:6px 0;overflow:hidden;position:relative}
+.xp-bar{height:100%;background:linear-gradient(90deg,var(--accent),var(--gold));border-radius:6px;transition:width .5s ease}
+.xp-info{display:flex;justify-content:space-between;font-size:.6em;color:var(--text-dim)}
+.tabs{display:flex;gap:4px;margin:10px 0}
+.tab{flex:1;padding:8px;text-align:center;background:var(--bg-mid);border:1px solid #333;border-radius:8px 8px 0 0;cursor:pointer;font-size:.75em;color:var(--text-dim);transition:all .2s;font-family:inherit}
+.tab.active{background:var(--bg-light);color:var(--gold);border-bottom-color:var(--bg-light)}
+.tab:hover{color:var(--text)}
+.panel{display:none;background:var(--bg-light);border:1px solid #333;border-top:0;border-radius:0 0 10px 10px;padding:12px;min-height:300px}
+.panel.active{display:block}
+.quest-add{display:flex;gap:6px;margin-bottom:10px}
+.quest-add input{flex:1;background:var(--bg-dark);border:1px solid #555;border-radius:8px;padding:8px 12px;color:var(--text);font-family:inherit;font-size:.85em}
+.quest-add input::placeholder{color:#666}
+.quest-add input:focus{outline:none;border-color:var(--gold)}
+.quest-options{display:flex;gap:6px;margin-bottom:10px;flex-wrap:wrap}
+.diff-btn,.cat-btn{padding:5px 10px;border-radius:15px;border:1px solid #555;background:var(--bg-dark);color:var(--text-dim);cursor:pointer;font-size:.7em;font-family:inherit;transition:all .2s}
+.diff-btn.active,.cat-btn.active{border-color:var(--gold);color:var(--gold)}
+.diff-btn:hover,.cat-btn:hover{border-color:var(--text)}
+.add-btn{background:var(--accent);border:none;color:#fff;padding:8px 16px;border-radius:8px;cursor:pointer;font-family:inherit;font-size:.85em;transition:background .2s}
+.add-btn:hover{background:#ff5a75}
+.quest-list{list-style:none}
+.quest-item{display:flex;align-items:center;gap:8px;padding:10px;background:var(--bg-dark);border:1px solid #333;border-radius:8px;margin-bottom:6px;transition:all .3s;animation:slideIn .3s ease}
+.quest-item:hover{border-color:#555}
+.quest-item.done{opacity:.5;text-decoration:line-through}
+.quest-check{width:24px;height:24px;border-radius:50%;border:2px solid var(--accent);background:transparent;cursor:pointer;display:flex;align-items:center;justify-content:center;flex-shrink:0;transition:all .2s;font-size:12px;color:transparent}
+.quest-check:hover{background:rgba(233,69,96,.2)}
+.quest-item.done .quest-check{background:var(--green);border-color:var(--green);color:#fff}
+.quest-info{flex:1;min-width:0}
+.quest-name{font-size:.85em;word-break:break-word}
+.quest-meta{font-size:.6em;color:var(--text-dim);margin-top:2px}
+.quest-reward{font-size:.7em;color:var(--gold);white-space:nowrap}
+.quest-delete{background:none;border:none;color:#555;cursor:pointer;font-size:1em;padding:4px;transition:color .2s}
+.quest-delete:hover{color:var(--accent)}
+.empty-msg{text-align:center;color:var(--text-dim);font-size:.8em;padding:40px 0}
+.town-view{position:relative;height:220px;background:linear-gradient(180deg,#0a0a23 0%,#1a1a4e 40%,#2d5016 70%,#1a3a0a 100%);border-radius:10px;overflow:hidden;margin-bottom:10px}
+.stars{position:absolute;top:0;left:0;right:0;height:40%}
+.star{position:absolute;width:2px;height:2px;background:#fff;border-radius:50%;animation:twinkle 2s infinite}
+@keyframes twinkle{0%,100%{opacity:.3}50%{opacity:1}}
+.ground{position:absolute;bottom:0;left:0;right:0;height:30%;background:linear-gradient(180deg,#2d5016,#1a3a0a)}
+.building{position:absolute;bottom:30%;text-align:center;cursor:pointer;transition:transform .2s}
+.building:hover{transform:scale(1.1)}
+.building .icon{font-size:2em}
+.building .bname{font-size:.5em;color:var(--text-dim);white-space:nowrap}
+.town-gold{position:absolute;top:8px;right:10px;font-size:.8em;color:var(--gold)}
+.town-level{position:absolute;top:8px;left:10px;font-size:.7em;color:var(--blue)}
+.shop-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.shop-item{background:var(--bg-dark);border:1px solid #333;border-radius:8px;padding:10px;text-align:center;cursor:pointer;transition:all .2s}
+.shop-item:hover{border-color:var(--gold)}
+.shop-item.owned{opacity:.4;cursor:default}
+.shop-item .s-icon{font-size:1.8em}
+.shop-item .s-name{font-size:.7em;margin:4px 0}
+.shop-item .s-cost{font-size:.65em;color:var(--gold)}
+.shop-item .s-desc{font-size:.55em;color:var(--text-dim)}
+.char-card{text-align:center;padding:20px}
+.char-avatar{font-size:4em;margin-bottom:8px}
+.char-title{font-size:.7em;color:var(--accent);margin-bottom:4px}
+.char-name{font-size:1.2em;color:var(--gold);margin-bottom:12px}
+.char-stats{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:16px}
+.cs{background:var(--bg-dark);border-radius:8px;padding:10px;text-align:center}
+.cs .cs-label{font-size:.6em;color:var(--text-dim)}
+.cs .cs-val{font-size:1.1em;font-weight:bold;color:var(--blue)}
+.achieve-list{display:grid;grid-template-columns:1fr 1fr;gap:6px}
+.achieve{background:var(--bg-dark);border:1px solid #333;border-radius:8px;padding:10px;text-align:center;transition:all .2s}
+.achieve.unlocked{border-color:var(--gold);background:rgba(255,215,0,.05)}
+.achieve .a-icon{font-size:1.5em;filter:grayscale(1);transition:filter .3s}
+.achieve.unlocked .a-icon{filter:grayscale(0)}
+.achieve .a-name{font-size:.65em;margin-top:4px}
+.achieve .a-desc{font-size:.55em;color:var(--text-dim);margin-top:2px}
+.toast{position:fixed;top:20px;left:50%;transform:translateX(-50%);background:var(--bg-mid);border:1px solid var(--gold);border-radius:10px;padding:10px 20px;color:var(--gold);font-family:inherit;font-size:.85em;z-index:999;animation:toastIn .3s ease;box-shadow:0 4px 20px rgba(255,215,0,.2)}
+@keyframes toastIn{from{opacity:0;transform:translateX(-50%) translateY(-20px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}
+@keyframes slideIn{from{opacity:0;transform:translateX(-20px)}to{opacity:1;transform:translateX(0)}}
+.particle{position:fixed;pointer-events:none;font-size:1.2em;animation:floatUp 1s ease forwards;z-index:998}
+@keyframes floatUp{0%{opacity:1;transform:translateY(0) scale(1)}100%{opacity:0;transform:translateY(-80px) scale(1.5)}}
+.filter-tabs{display:flex;gap:4px;margin-bottom:8px}
+.filter-tab{padding:3px 8px;border-radius:10px;border:1px solid #444;background:transparent;color:var(--text-dim);cursor:pointer;font-size:.6em;font-family:inherit;transition:all .2s}
+.filter-tab.active{border-color:var(--gold);color:var(--gold)}
+@media(max-width:400px){.app{padding:8px}.header h1{font-size:1.1em}.shop-list,.achieve-list{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <h1>&#9876;&#65039; タスク勇者 &#12316;クエストの書&#12316;</h1>
+    <div class="subtitle">Todoをこなして世界を救え！</div>
+  </div>
+  <div class="stats-bar">
+    <div class="stat"><span class="label">レベル</span><span class="value lv" id="level">1</span></div>
+    <div class="stat"><span class="label">ゴールド</span><span class="value" id="gold">0</span></div>
+    <div class="stat"><span class="label">連続日数</span><span class="value streak" id="streak">0</span></div>
+    <div class="stat"><span class="label">完了数</span><span class="value" id="totalDone">0</span></div>
+  </div>
+  <div class="xp-bar-wrap"><div class="xp-bar" id="xpBar" style="width:0%"></div></div>
+  <div class="xp-info"><span id="xpText">0 / 100 XP</span><span id="titleText">見習い冒険者</span></div>
+  <div class="tabs">
+    <button class="tab active" data-tab="quests">&#128220; クエスト</button>
+    <button class="tab" data-tab="town">&#127984; 街</button>
+    <button class="tab" data-tab="character">&#128100; 勇者</button>
+    <button class="tab" data-tab="achievements">&#127942; 実績</button>
+  </div>
+  <div class="panel active" id="panel-quests">
+    <div class="quest-add">
+      <input type="text" id="questInput" placeholder="新しいクエストを入力..." maxlength="100">
+      <button class="add-btn" id="addBtn">追加</button>
+    </div>
+    <div class="quest-options">
+      <button class="diff-btn active" data-diff="easy">&#9733; 簡単</button>
+      <button class="diff-btn" data-diff="normal">&#9733;&#9733; 普通</button>
+      <button class="diff-btn" data-diff="hard">&#9733;&#9733;&#9733; 難しい</button>
+    </div>
+    <div class="quest-options">
+      <button class="cat-btn active" data-cat="work">&#128188; 仕事</button>
+      <button class="cat-btn" data-cat="study">&#128218; 勉強</button>
+      <button class="cat-btn" data-cat="home">&#127968; 家事</button>
+      <button class="cat-btn" data-cat="health">&#128170; 健康</button>
+      <button class="cat-btn" data-cat="other">&#127775; その他</button>
+    </div>
+    <div class="filter-tabs">
+      <button class="filter-tab active" data-filter="active">未完了</button>
+      <button class="filter-tab" data-filter="done">完了済</button>
+      <button class="filter-tab" data-filter="all">すべて</button>
+    </div>
+    <ul class="quest-list" id="questList"></ul>
+  </div>
+  <div class="panel" id="panel-town">
+    <div class="town-view" id="townView">
+      <div class="stars" id="stars"></div>
+      <div class="ground"></div>
+      <div class="town-level" id="townLevel">&#127984; 街Lv.1</div>
+      <div class="town-gold">&#128176; <span id="townGold">0</span>G</div>
+    </div>
+    <h3 style="font-size:.8em;color:var(--gold);margin-bottom:8px">&#128722; 建物ショップ</h3>
+    <div class="shop-list" id="shopList"></div>
+  </div>
+  <div class="panel" id="panel-character">
+    <div class="char-card">
+      <div class="char-avatar" id="charAvatar">&#129497;</div>
+      <div class="char-title" id="charTitle">見習い冒険者</div>
+      <div class="char-name" id="charName">勇者</div>
+      <div class="char-stats">
+        <div class="cs"><div class="cs-label">総クエスト完了</div><div class="cs-val" id="csDone">0</div></div>
+        <div class="cs"><div class="cs-label">獲得総XP</div><div class="cs-val" id="csXp">0</div></div>
+        <div class="cs"><div class="cs-label">獲得総ゴールド</div><div class="cs-val" id="csGold">0</div></div>
+        <div class="cs"><div class="cs-label">最長連続日数</div><div class="cs-val" id="csStreak">0</div></div>
+      </div>
+      <div class="char-stats">
+        <div class="cs"><div class="cs-label">&#128188; 仕事</div><div class="cs-val" id="csWork">0</div></div>
+        <div class="cs"><div class="cs-label">&#128218; 勉強</div><div class="cs-val" id="csStudy">0</div></div>
+        <div class="cs"><div class="cs-label">&#127968; 家事</div><div class="cs-val" id="csHome">0</div></div>
+        <div class="cs"><div class="cs-label">&#128170; 健康</div><div class="cs-val" id="csHealth">0</div></div>
+      </div>
+    </div>
+  </div>
+  <div class="panel" id="panel-achievements">
+    <div class="achieve-list" id="achieveList"></div>
+  </div>
+</div>
+<script>
+const DEFAULT_STATE={level:1,xp:0,gold:0,totalGold:0,totalXp:0,totalDone:0,streak:0,maxStreak:0,lastDoneDate:null,quests:[],buildings:[],achievements:[],catStats:{work:0,study:0,home:0,health:0,other:0}};
+let state=loadState();
+function loadState(){try{const s=localStorage.getItem('taskHeroState');return s?{...DEFAULT_STATE,...JSON.parse(s)}:JSON.parse(JSON.stringify(DEFAULT_STATE))}catch(e){return JSON.parse(JSON.stringify(DEFAULT_STATE))}}
+function saveState(){localStorage.setItem('taskHeroState',JSON.stringify(state))}
+const DIFF_CONFIG={easy:{xp:15,gold:5,label:'\u2605 簡単'},normal:{xp:30,gold:12,label:'\u2605\u2605 普通'},hard:{xp:60,gold:25,label:'\u2605\u2605\u2605 難しい'}};
+const CAT_CONFIG={work:{icon:'\ud83d\udcbc',label:'仕事'},study:{icon:'\ud83d\udcda',label:'勉強'},home:{icon:'\ud83c\udfe0',label:'家事'},health:{icon:'\ud83d\udcaa',label:'健康'},other:{icon:'\u2b50',label:'その他'}};
+const TITLES=[{lv:1,title:'見習い冒険者',avatar:'\ud83e\uddd1\u200d\ud83c\udf3e'},{lv:3,title:'駆け出し戦士',avatar:'\u2694\ufe0f'},{lv:5,title:'熟練の勇者',avatar:'\ud83d\udee1\ufe0f'},{lv:8,title:'ベテラン騎士',avatar:'\ud83c\udfc7'},{lv:12,title:'エリート聖騎士',avatar:'\u269c\ufe0f'},{lv:16,title:'竜殺しの英雄',avatar:'\ud83d\udc09'},{lv:20,title:'伝説の大勇者',avatar:'\ud83d\udc51'},{lv:30,title:'神話の王',avatar:'\u2b50'}];
+const BUILDINGS=[{id:'house',name:'民家',icon:'\ud83c\udfe0',cost:20,desc:'村人が住む家'},{id:'inn',name:'宿屋',icon:'\ud83c\udfe8',cost:40,desc:'旅人を癒す場所'},{id:'shop',name:'雑貨店',icon:'\ud83c\udfea',cost:60,desc:'便利な道具を売る'},{id:'blacksmith',name:'鍛冶屋',icon:'\u2692\ufe0f',cost:100,desc:'武器を鍛える'},{id:'church',name:'教会',icon:'\u26ea',cost:120,desc:'祈りの場所'},{id:'library',name:'図書館',icon:'\ud83d\udcda',cost:150,desc:'知恵の宝庫'},{id:'tower',name:'魔法の塔',icon:'\ud83d\uddfc',cost:200,desc:'魔力が満ちる'},{id:'castle',name:'城',icon:'\ud83c\udff0',cost:350,desc:'街のシンボル'},{id:'colosseum',name:'闘技場',icon:'\ud83c\udfdf\ufe0f',cost:500,desc:'勇者の腕試し'},{id:'palace',name:'王宮',icon:'\ud83d\udc51',cost:800,desc:'繁栄の証'}];
+const ACHIEVEMENTS=[{id:'first_quest',name:'はじめの一歩',desc:'最初のクエストを完了',icon:'\ud83c\udf31',check:s=>s.totalDone>=1},{id:'quest_10',name:'冒険者の証',desc:'10個のクエストを完了',icon:'\ud83d\udcdc',check:s=>s.totalDone>=10},{id:'quest_50',name:'歴戦の猛者',desc:'50個のクエストを完了',icon:'\ud83d\udde1\ufe0f',check:s=>s.totalDone>=50},{id:'quest_100',name:'伝説のクエスター',desc:'100個のクエストを完了',icon:'\ud83c\udfc6',check:s=>s.totalDone>=100},{id:'streak_3',name:'三日坊主卒業',desc:'3日連続達成',icon:'\ud83d\udd25',check:s=>s.maxStreak>=3},{id:'streak_7',name:'一週間の覇者',desc:'7日連続達成',icon:'\u2b50',check:s=>s.maxStreak>=7},{id:'streak_30',name:'鉄の意志',desc:'30日連続達成',icon:'\ud83d\udc8e',check:s=>s.maxStreak>=30},{id:'lv5',name:'成長の証',desc:'レベル5に到達',icon:'\ud83d\udcc8',check:s=>s.level>=5},{id:'lv10',name:'一人前の勇者',desc:'レベル10に到達',icon:'\ud83c\udf96\ufe0f',check:s=>s.level>=10},{id:'lv20',name:'大勇者の覚醒',desc:'レベル20に到達',icon:'\ud83d\udc51',check:s=>s.level>=20},{id:'gold_100',name:'小金持ち',desc:'累計100G獲得',icon:'\ud83d\udcb0',check:s=>s.totalGold>=100},{id:'gold_1000',name:'大富豪',desc:'累計1000G獲得',icon:'\ud83d\udc8e',check:s=>s.totalGold>=1000},{id:'building_1',name:'開拓者',desc:'最初の建物を建設',icon:'\ud83c\udfd7\ufe0f',check:s=>s.buildings.length>=1},{id:'building_5',name:'街づくりの名人',desc:'5つの建物を建設',icon:'\ud83c\udf06',check:s=>s.buildings.length>=5},{id:'building_all',name:'完全なる都市',desc:'全建物を建設',icon:'\ud83c\udf07',check:s=>s.buildings.length>=BUILDINGS.length}];
+function xpForLevel(lv){return Math.floor(80*(Math.pow(lv,1.4)))}
+function getTitle(lv){let t=TITLES[0];TITLES.forEach(function(ti){if(lv>=ti.lv)t=ti});return t}
+function updateStreak(){const today=new Date().toDateString();if(state.lastDoneDate===today)return;const yesterday=new Date(Date.now()-86400000).toDateString();if(state.lastDoneDate===yesterday){state.streak++}else if(state.lastDoneDate!==today){state.streak=1}state.lastDoneDate=today;if(state.streak>state.maxStreak)state.maxStreak=state.streak}
+const $=function(id){return document.getElementById(id)};
+const questInput=$('questInput'),questList=$('questList');
+document.querySelectorAll('.tab').forEach(function(tab){tab.addEventListener('click',function(){document.querySelectorAll('.tab').forEach(function(t){t.classList.remove('active')});document.querySelectorAll('.panel').forEach(function(p){p.classList.remove('active')});tab.classList.add('active');document.getElementById('panel-'+tab.dataset.tab).classList.add('active');if(tab.dataset.tab==='town')renderTown();if(tab.dataset.tab==='character')renderCharacter();if(tab.dataset.tab==='achievements')renderAchievements()})});
+let selDiff='easy',selCat='work',selFilter='active';
+document.querySelectorAll('.diff-btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.diff-btn').forEach(function(x){x.classList.remove('active')});b.classList.add('active');selDiff=b.dataset.diff})});
+document.querySelectorAll('.cat-btn').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.cat-btn').forEach(function(x){x.classList.remove('active')});b.classList.add('active');selCat=b.dataset.cat})});
+document.querySelectorAll('.filter-tab').forEach(function(b){b.addEventListener('click',function(){document.querySelectorAll('.filter-tab').forEach(function(x){x.classList.remove('active')});b.classList.add('active');selFilter=b.dataset.filter;renderQuests()})});
+$('addBtn').addEventListener('click',addQuest);
+questInput.addEventListener('keydown',function(e){if(e.key==='Enter')addQuest()});
+function addQuest(){var name=questInput.value.trim();if(!name)return;state.quests.unshift({id:Date.now(),name:name,diff:selDiff,cat:selCat,done:false,createdAt:Date.now()});questInput.value='';saveState();renderQuests();showToast('\ud83d\udcdc 新クエスト登録！')}
+function completeQuest(id){var q=state.quests.find(function(x){return x.id===id});if(!q||q.done)return;q.done=true;q.doneAt=Date.now();var cfg=DIFF_CONFIG[q.diff];var streakBonus=Math.min(state.streak,10)*0.1;var xpGain=Math.floor(cfg.xp*(1+streakBonus));var goldGain=Math.floor(cfg.gold*(1+streakBonus));var lucky=Math.random()<0.15;var bonusGold=lucky?Math.floor(goldGain*0.5):0;state.xp+=xpGain;state.gold+=goldGain+bonusGold;state.totalGold+=goldGain+bonusGold;state.totalXp+=xpGain;state.totalDone++;state.catStats[q.cat]=(state.catStats[q.cat]||0)+1;updateStreak();var leveledUp=false;while(state.xp>=xpForLevel(state.level)){state.xp-=xpForLevel(state.level);state.level++;leveledUp=true}saveState();checkAchievements();renderQuests();renderStats();spawnParticles('+'+xpGain+'XP','var(--blue)');setTimeout(function(){spawnParticles('+'+goldGain+'G','var(--gold)')},300);if(lucky){setTimeout(function(){showToast('\ud83c\udf81 レアドロップ！ ボーナス +'+bonusGold+'G');spawnParticles('\ud83d\udc8eRARE!','var(--accent)')},600)}if(leveledUp){setTimeout(function(){var t=getTitle(state.level);showToast('\u2b06\ufe0f レベルアップ！ Lv.'+state.level+' \u300e'+t.title+'\u300f')},lucky?1200:600)}}
+function deleteQuest(id){state.quests=state.quests.filter(function(q){return q.id!==id});saveState();renderQuests()}
+function renderQuests(){var list=state.quests;if(selFilter==='active')list=list.filter(function(q){return!q.done});else if(selFilter==='done')list=list.filter(function(q){return q.done});if(list.length===0){questList.innerHTML='<div class="empty-msg">'+(selFilter==='done'?'完了したクエストはまだありません':'\ud83d\udde1\ufe0f クエストがありません。冒険を始めよう！')+'</div>';return}questList.innerHTML=list.map(function(q){var cfg=DIFF_CONFIG[q.diff];var cat=CAT_CONFIG[q.cat];return '<li class="quest-item'+(q.done?' done':'')+'"><button class="quest-check" onclick="completeQuest('+q.id+')">'+(q.done?'\u2713':'')+'</button><div class="quest-info"><div class="quest-name">'+escHtml(q.name)+'</div><div class="quest-meta">'+cat.icon+' '+cat.label+' \u30fb '+cfg.label+'</div></div><span class="quest-reward">'+(q.done?'\u2705':'\ud83e\ude99'+cfg.gold+'G')+'</span><button class="quest-delete" onclick="deleteQuest('+q.id+')">\u2715</button></li>'}).join('')}
+function renderStats(){$('level').textContent=state.level;$('gold').textContent=state.gold;$('streak').textContent=state.streak;$('totalDone').textContent=state.totalDone;var needed=xpForLevel(state.level);var pct=Math.min(100,Math.floor(state.xp/needed*100));$('xpBar').style.width=pct+'%';$('xpText').textContent=state.xp+' / '+needed+' XP';var t=getTitle(state.level);$('titleText').textContent=t.title}
+function renderTown(){$('townGold').textContent=state.gold;$('townLevel').textContent='\ud83c\udff0 街Lv.'+Math.min(state.buildings.length+1,BUILDINGS.length);var starsEl=$('stars');if(!starsEl.children.length){for(var i=0;i<30;i++){var s=document.createElement('div');s.className='star';s.style.left=Math.random()*100+'%';s.style.top=Math.random()*100+'%';s.style.animationDelay=Math.random()*2+'s';starsEl.appendChild(s)}}var tv=$('townView');tv.querySelectorAll('.building').forEach(function(b){b.remove()});state.buildings.forEach(function(bid,i){var bd=BUILDINGS.find(function(x){return x.id===bid});if(!bd)return;var el=document.createElement('div');el.className='building';var positions=[{left:'10%'},{left:'25%'},{left:'40%'},{left:'55%'},{left:'70%'},{left:'85%'},{left:'17%'},{left:'47%'},{left:'63%'},{left:'33%'}];var pos=positions[i%positions.length];el.style.left=pos.left;if(i>=6)el.style.bottom='42%';el.innerHTML='<div class="icon">'+bd.icon+'</div><div class="bname">'+bd.name+'</div>';tv.appendChild(el)});var shopList=$('shopList');shopList.innerHTML=BUILDINGS.map(function(b){var owned=state.buildings.indexOf(b.id)!==-1;return '<div class="shop-item'+(owned?' owned':'')+'" onclick="'+(owned?'':'buyBuilding(\''+b.id+'\')')+'"><div class="s-icon">'+b.icon+'</div><div class="s-name">'+b.name+'</div><div class="s-cost">'+(owned?'\u2705 建設済':'\ud83d\udcb0 '+b.cost+'G')+'</div><div class="s-desc">'+b.desc+'</div></div>'}).join('')}
+function buyBuilding(id){var b=BUILDINGS.find(function(x){return x.id===id});if(!b||state.buildings.indexOf(id)!==-1)return;if(state.gold<b.cost){showToast('\u274c ゴールドが足りません！');return}state.gold-=b.cost;state.buildings.push(id);saveState();checkAchievements();renderTown();renderStats();showToast('\ud83c\udfd7\ufe0f '+b.name+'を建設しました！');spawnParticles('\ud83c\udfd7\ufe0f','var(--green)')}
+function renderCharacter(){var t=getTitle(state.level);$('charAvatar').textContent=t.avatar;$('charTitle').textContent=t.title;$('csDone').textContent=state.totalDone;$('csXp').textContent=state.totalXp;$('csGold').textContent=state.totalGold;$('csStreak').textContent=state.maxStreak;$('csWork').textContent=state.catStats.work||0;$('csStudy').textContent=state.catStats.study||0;$('csHome').textContent=state.catStats.home||0;$('csHealth').textContent=state.catStats.health||0}
+function renderAchievements(){var list=$('achieveList');list.innerHTML=ACHIEVEMENTS.map(function(a){var unlocked=state.achievements.indexOf(a.id)!==-1;return '<div class="achieve'+(unlocked?' unlocked':'')+'"><div class="a-icon">'+a.icon+'</div><div class="a-name">'+a.name+'</div><div class="a-desc">'+a.desc+'</div></div>'}).join('')}
+function checkAchievements(){var newOnes=false;ACHIEVEMENTS.forEach(function(a){if(state.achievements.indexOf(a.id)===-1&&a.check(state)){state.achievements.push(a.id);newOnes=true;setTimeout(function(){showToast('\ud83c\udfc6 実績解除！\u300e'+a.name+'\u300f');spawnParticles('\ud83c\udfc6','var(--gold)')},800)}});if(newOnes)saveState()}
+function showToast(msg){var t=document.createElement('div');t.className='toast';t.textContent=msg;document.body.appendChild(t);setTimeout(function(){t.remove()},2500)}
+function spawnParticles(text,color){var p=document.createElement('div');p.className='particle';p.textContent=text;p.style.color=color;p.style.left=Math.random()*60+20+'%';p.style.top='40%';document.body.appendChild(p);setTimeout(function(){p.remove()},1000)}
+function escHtml(s){var d=document.createElement('div');d.textContent=s;return d.innerHTML}
+renderQuests();renderStats();
+</script>
+</body>
+</html>
